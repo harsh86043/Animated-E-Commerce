@@ -18,6 +18,14 @@ public static class DependencyInjection
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<EcommerceDbContext>());
 
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<ISmsSender, MockSmsSender>();
+        services.AddScoped<IEmailSender, MockEmailSender>();
+        services.AddScoped<IOtpService, OtpService>();
+        services.AddScoped<IGoogleAuthService, GoogleAuthService>();
+        services.AddScoped<ITokenService, TokenService>();
+
         services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
 
         return services;

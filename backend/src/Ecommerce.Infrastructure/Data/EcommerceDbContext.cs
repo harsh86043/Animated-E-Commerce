@@ -23,6 +23,10 @@ public class EcommerceDbContext : DbContext, IApplicationDbContext
     public DbSet<CartItem> CartItems => Set<CartItem>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<OtpChallenge> OtpChallenges => Set<OtpChallenge>();
+    public DbSet<LoginAudit> LoginAudits => Set<LoginAudit>();
+    public DbSet<SellerProfile> SellerProfiles => Set<SellerProfile>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -218,6 +222,84 @@ public class EcommerceDbContext : DbContext, IApplicationDbContext
             entity.HasOne(oi => oi.Product)
                 .WithMany()
                 .HasForeignKey(oi => oi.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // User Configuration
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(u => u.Id);
+            entity.Property(u => u.Email).IsRequired().HasMaxLength(150);
+            entity.Property(u => u.PasswordHash).IsRequired().HasMaxLength(500);
+            entity.Property(u => u.FullName).IsRequired().HasMaxLength(150);
+            entity.Property(u => u.PhoneNumber).HasMaxLength(30);
+            entity.Property(u => u.Role)
+                .HasConversion<string>()
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.HasIndex(u => u.Email).IsUnique();
+        });
+
+        // OtpChallenge Configuration
+        modelBuilder.Entity<OtpChallenge>(entity =>
+        {
+            entity.HasKey(oc => oc.Id);
+            entity.Property(oc => oc.DestinationType).IsRequired().HasMaxLength(50);
+            entity.Property(oc => oc.Destination).IsRequired().HasMaxLength(150);
+            entity.Property(oc => oc.Purpose).IsRequired().HasMaxLength(50);
+            entity.Property(oc => oc.OtpHash).IsRequired().HasMaxLength(500);
+
+            entity.HasIndex(oc => oc.Destination);
+        });
+
+        // LoginAudit Configuration
+        modelBuilder.Entity<LoginAudit>(entity =>
+        {
+            entity.HasKey(la => la.Id);
+            entity.Property(la => la.Email).IsRequired().HasMaxLength(150);
+            entity.Property(la => la.IpAddress).HasMaxLength(50);
+            entity.Property(la => la.FailureReason).HasMaxLength(250);
+
+            entity.HasIndex(la => la.Email);
+        });
+
+        // SellerProfile Configuration
+        modelBuilder.Entity<SellerProfile>(entity =>
+        {
+            entity.HasKey(sp => sp.Id);
+            entity.Property(sp => sp.StoreName).IsRequired().HasMaxLength(150);
+            entity.Property(sp => sp.StoreSlug).IsRequired().HasMaxLength(150);
+            entity.Property(sp => sp.BusinessEmail).IsRequired().HasMaxLength(150);
+            entity.Property(sp => sp.BusinessPhone).IsRequired().HasMaxLength(30);
+            entity.Property(sp => sp.Address).HasMaxLength(500);
+            entity.Property(sp => sp.GstNumber).HasMaxLength(50);
+            entity.Property(sp => sp.PanNumber).HasMaxLength(50);
+            entity.Property(sp => sp.Status)
+                .HasConversion<string>()
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.HasOne(sp => sp.User)
+                .WithMany()
+                .HasForeignKey(sp => sp.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(sp => sp.StoreSlug).IsUnique();
+            entity.HasIndex(sp => sp.UserId);
+        });
+
+        // Update Product with Seller relationship and Approval Status
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.Property(p => p.ApprovalStatus)
+                .HasConversion<string>()
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.HasOne(p => p.Seller)
+                .WithMany()
+                .HasForeignKey(p => p.SellerId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

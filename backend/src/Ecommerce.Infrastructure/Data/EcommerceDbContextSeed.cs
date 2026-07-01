@@ -8,8 +8,80 @@ namespace Ecommerce.Infrastructure.Data;
 
 public static class EcommerceDbContextSeed
 {
+    private static string HashPassword(string password)
+    {
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        var bytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+        return Convert.ToBase64String(bytes);
+    }
+
     public static async Task SeedAsync(EcommerceDbContext context)
     {
+        // 0. Seed Users, Seller Profiles, and Customers
+        if (!context.Users.Any())
+        {
+            var adminUser = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "admin@ecommerce.com",
+                PasswordHash = HashPassword("admin123"),
+                FullName = "Super Admin",
+                Role = Ecommerce.Domain.Enums.UserRole.Admin,
+                IsActive = true
+            };
+
+            var sellerUser = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "seller@ecommerce.com",
+                PasswordHash = HashPassword("seller123"),
+                FullName = "Pro Merchant",
+                Role = Ecommerce.Domain.Enums.UserRole.Seller,
+                IsActive = true
+            };
+
+            var customerUser = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "customer@ecommerce.com",
+                PasswordHash = HashPassword("customer123"),
+                FullName = "Elite Shopper",
+                Role = Ecommerce.Domain.Enums.UserRole.Customer,
+                IsActive = true
+            };
+
+            await context.Users.AddRangeAsync(adminUser, sellerUser, customerUser);
+
+            // Seed seller profile
+            var sellerProfile = new SellerProfile
+            {
+                Id = Guid.NewGuid(),
+                UserId = sellerUser.Id,
+                StoreName = "Omnicorp Gear",
+                StoreSlug = "omnicorp-gear",
+                BusinessEmail = "omnicorp@ecommerce.com",
+                BusinessPhone = "+1 555-9081",
+                Address = "Sector 4, Neon City Grid",
+                Status = Ecommerce.Domain.Enums.SellerStatus.Active,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+
+            await context.SellerProfiles.AddAsync(sellerProfile);
+
+            // Seed customer details
+            var customer = new Customer
+            {
+                Id = customerUser.Id,
+                Email = customerUser.Email,
+                FullName = customerUser.FullName,
+                IsActive = true
+            };
+
+            await context.Customers.AddAsync(customer);
+
+            await context.SaveChangesAsync();
+        }
+
         // 1. Seed Categories if empty
         if (!context.Categories.Any())
         {
@@ -60,6 +132,8 @@ public static class EcommerceDbContextSeed
             var cyberwearCat = context.Categories.First(c => c.Slug == "cyberwear");
             var neuralCat = context.Categories.First(c => c.Slug == "neural-imprints");
             var kineticCat = context.Categories.First(c => c.Slug == "kinetic-gear");
+            var sellerProfile = context.SellerProfiles.FirstOrDefault();
+            var sellerId = sellerProfile?.Id;
 
             var products = new List<Product>
             {
@@ -222,6 +296,15 @@ public static class EcommerceDbContextSeed
             };
 
             await context.Products.AddRangeAsync(products);
+            await context.SaveChangesAsync();
+
+            // Post-seed: Assign products to the seeded seller and approve them so they are active
+            var dbProducts = context.Products.ToList();
+            foreach (var p in dbProducts)
+            {
+                p.SellerId = sellerId;
+                p.ApprovalStatus = Ecommerce.Domain.Enums.ProductApprovalStatus.Approved;
+            }
             await context.SaveChangesAsync();
         }
     }

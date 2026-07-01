@@ -12,10 +12,12 @@ namespace Ecommerce.Api.Controllers;
 public class CartController : ControllerBase
 {
     private readonly ICartService _cartService;
+    private readonly IApplicationDbContext _context;
 
-    public CartController(ICartService cartService)
+    public CartController(ICartService cartService, IApplicationDbContext context)
     {
         _cartService = cartService;
+        _context = context;
     }
 
     [HttpGet]
@@ -62,9 +64,52 @@ public class CartController : ControllerBase
         var cart = await _cartService.ClearCartAsync(cartId, cancellationToken);
         return Ok(cart);
     }
+
+    [HttpPost("merge-guest-cart")]
+    public async Task<IActionResult> MergeGuestCart([FromBody] MergeCartRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.GuestSessionId))
+        {
+            return BadRequest("GuestSessionId is required.");
+        }
+
+        // Get or Create customer cart
+        var customerCartDto = await _cartService.GetOrCreateCartAsync(null, request.CustomerId, cancellationToken);
+
+        // Fetch guest cart using EF Context to grab its raw items
+        var guestCart = await _context.Carts
+            .Include(c => c.Items)
+            .FirstOrDefaultAsync(c => c.SessionId == request.GuestSessionId, cancellationToken);
+
+        if (guestCart != null && guestCart.Items.Any())
+        {
+            foreach (var guestItem in guestCart.Items)
+            {
+                var addToCartDto = new AddToCartDto
+                {
+                    ProductId = guestItem.ProductId,
+                    Quantity = guestItem.Quantity,
+                    SelectedVariantSummary = guestItem.SelectedVariantSummary
+                };
+                customerCartDto = await _cartService.AddItemToCartAsync(customerCartDto.Id, addToCartDto, cancellationToken);
+            }
+
+            // Clear guest cart
+            guestCart.Items.Clear();
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        return Ok(customerCartDto);
+    }
 }
 
 public class UpdateCartItemQuantityRequest
 {
     public int Quantity { get; set; }
+}
+
+public class MergeCartRequest
+{
+    public required string GuestSessionId { get; set; }
+    public Guid CustomerId { get; set; }
 }

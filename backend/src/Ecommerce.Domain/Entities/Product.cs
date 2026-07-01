@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Ecommerce.Domain.Enums;
 
 namespace Ecommerce.Domain.Entities;
 
@@ -39,6 +40,13 @@ public class Product
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     
     public DateTime? UpdatedAtUtc { get; set; }
+
+    // Seller & Moderation properties
+    public Guid? SellerId { get; set; }
+    public SellerProfile? Seller { get; set; }
+    public ProductApprovalStatus ApprovalStatus { get; set; } = ProductApprovalStatus.Approved; // Default to Approved so seeded products are visible
+    public string? RejectionReason { get; set; }
+    public Guid? ApprovedByAdminId { get; set; }
 
     // Relationships
     public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();

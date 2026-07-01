@@ -17,4 +17,6 @@ public class OrderItem
     public decimal UnitPrice { get; set; }
     
     public string? SelectedVariantSummary { get; set; }
+    
+    public Guid? SellerId { get; set; }
 }

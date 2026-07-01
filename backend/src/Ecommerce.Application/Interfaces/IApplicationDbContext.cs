@@ -17,6 +17,10 @@ public interface IApplicationDbContext
     DbSet<CartItem> CartItems { get; }
     DbSet<Order> Orders { get; }
     DbSet<OrderItem> OrderItems { get; }
+    DbSet<User> Users { get; }
+    DbSet<OtpChallenge> OtpChallenges { get; }
+    DbSet<LoginAudit> LoginAudits { get; }
+    DbSet<SellerProfile> SellerProfiles { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
