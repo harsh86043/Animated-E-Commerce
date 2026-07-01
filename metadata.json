@@ -1,0 +1,6 @@
+{
+  "name": "Immersive E-Commerce Template",
+  "description": "A production-quality starter template for an immersive 3D-feel e-commerce website with Angular 21, .NET 10 Web API, and Three.js.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
